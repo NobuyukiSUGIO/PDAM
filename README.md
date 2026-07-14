@@ -215,6 +215,28 @@ The client tolerates template quirks (folds a `system` role into the first
 `user` turn for templates that reject it) and, for reasoning models whose
 chain-of-thought exhausts the budget, retries once with a larger token cap.
 
+### Empirical multi-model results
+
+Four open-weight models across three families and two size classes were run over
+all 4 workloads × 8 attacks × {none, minimal_defense} × 3 repetitions
+(`scripts/run_llm_eval.sh`; served locally by LM Studio; full data under
+[`results/llm/`](results/llm/RESULTS.md)). Every emitted tool call is judged
+mechanically (data-flow / policy), not by keywords.
+
+| model | no-defense ASR | minimal_defense ASR | benign task success | Fisher exact |
+|---|--:|--:|--:|--:|
+| meta-llama-3.1-8b-instruct | 0.948 | **0.000** | 0.946 | p = 1.3e-12 |
+| mistral-7b-instruct-v0.3 | 1.000 | **0.000** | 0.925 | p = 4.5e-13 |
+| mistral-small-24b-instruct-2501 | 1.000 | **0.000** | 0.953 | p = 4.5e-13 |
+| gemma-2-27b-it | 1.000 | **0.000** | 0.933 | p = 4.5e-13 |
+
+Across all four models the persistent, delayed-activation injections succeed at
+**95–100%** with no defense, and the §10.2 three-stage minimal defense drives ASR
+to **0** while keeping benign-task completion at **92–95%** (false-positive rate
+5–8%) — an empirical confirmation of H4 on real models (risk difference ≈ −1.0,
+p < 1.3e-12 for every model). This reproduces, on actual LLMs, the pattern the
+deterministic rule-based planner shows.
+
 ---
 
 ## Directory layout

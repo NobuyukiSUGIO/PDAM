@@ -1,0 +1,3 @@
+defense,n,asr,delayed_asr,persistence_survival,trigger_precision,stealth,unauthorized_action_rate,data_exfiltration_rate,benign_task_success,false_positive_rate,state_lineage_recovery,post_deletion_survival_rate,mean_resave_generations,mean_influence_decay
+minimal_defense,96,0.000,0.000,0.344,0.125,0.000,0.000,0.000,0.933,0.067,1.000,0.000,0.000,1.000
+none,96,1.000,1.000,1.000,0.542,1.000,1.000,0.448,1.000,0.000,0.750,0.667,0.344,0.554
