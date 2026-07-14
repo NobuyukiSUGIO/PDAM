@@ -183,14 +183,18 @@ def cmd_llm_eval(args):
 
     from .llm import LLMPlanner, LMStudioClient
 
-    workloads = args.workloads.split(",") if args.workloads else ["personal_secretary"]
+    all_wl = ["personal_secretary", "rag_support", "coding_support", "soc_support"]
+    workloads = (all_wl if args.workloads in ("all", "")
+                 else args.workloads.split(","))
     attacks = ([AttackType(a) for a in args.attacks.split(",")]
                if args.attacks else list(AttackType))
     defenses = args.defenses.split(",")
     client = LMStudioClient(model=args.model, base_url=args.base_url,
+                            temperature=args.temperature,
                             max_tokens=args.max_tokens,
                             hard_cap=max(args.max_tokens, args.hard_cap))
-    print(f"model: {args.model} @ {args.base_url}")
+    print(f"model: {args.model} @ {args.base_url}  temp={args.temperature} "
+          f"repeats={args.repeats}")
     print(f"checking server ... ", end="", flush=True)
     if not client.ping():
         print("UNREACHABLE. Is LM Studio serving and a model loaded?")
@@ -203,16 +207,19 @@ def cmd_llm_eval(args):
         guardrail = defense in ("prompt_only", "full")
         for wl in workloads:
             for at in attacks:
-                sc = build_scenario(wl, at, args.difficulty, defense=defense,
-                                    actionable=True)
-                planner = LLMPlanner(client, guardrail=guardrail)
-                res = Orchestrator(sc, planner).run()
-                results.append(res)
-                verdict = ("SUCCESS" if res.success
-                           else (f"blocked@{res.blocked_stage}:{res.blocked_by}"
-                                 if res.blocked_by else "no-fire"))
-                print(f"  {sc.name:<40} {defense:<16} -> {verdict:<28} "
-                      f"[{client.calls} calls, {time.time()-t0:.0f}s]")
+                for rep in range(args.repeats):
+                    sc = build_scenario(wl, at, args.difficulty, defense=defense,
+                                        actionable=True)
+                    planner = LLMPlanner(client, guardrail=guardrail)
+                    res = Orchestrator(sc, planner).run()
+                    res.model = args.model
+                    results.append(res)
+                    verdict = ("SUCCESS" if res.success
+                               else (f"blocked@{res.blocked_stage}:{res.blocked_by}"
+                                     if res.blocked_by else "no-fire"))
+                    tag = f"{sc.name}#{rep}" if args.repeats > 1 else sc.name
+                    print(f"  {tag:<42} {defense:<16} -> {verdict:<26} "
+                          f"[{client.calls} calls, {time.time()-t0:.0f}s]", flush=True)
 
     print("\n" + "=" * 70)
     print(f"Real-LLM evaluation ({args.model}) — {len(results)} runs, "
@@ -231,8 +238,8 @@ def cmd_llm_eval(args):
             fh.write(to_json(results))
         with open(os.path.join(args.outdir, "llm_by_defense.csv"), "w") as fh:
             fh.write(rows_to_csv(aggregate(results, by=["defense"])))
-        for r in results:
-            r.events.save(os.path.join(args.outdir, f"llm_{r.scenario}_{r.defense}.jsonl"))
+        with open(os.path.join(args.outdir, "llm_by_attack_defense.csv"), "w") as fh:
+            fh.write(rows_to_csv(aggregate(results, by=["attack_type", "defense"])))
         print(f"\nwrote LLM results to {args.outdir}/")
 
 
@@ -339,14 +346,18 @@ def build_parser() -> argparse.ArgumentParser:
                         help="evaluate a subset with a real local LLM planner")
     le.add_argument("--model", default="qwen/qwen3.6-27b")
     le.add_argument("--base-url", dest="base_url", default="http://localhost:1234/v1")
-    le.add_argument("--workloads", default="personal_secretary",
-                    help="comma-separated workloads")
+    le.add_argument("--workloads", default="all",
+                    help="comma-separated workloads, or 'all' (default)")
     le.add_argument("--attacks", default="",
                     help="comma-separated attack ids (A1..A8); default all")
     le.add_argument("--difficulty", default="easy", choices=DIFFICULTIES)
     le.add_argument("--defenses", default="none,minimal_defense")
-    le.add_argument("--max-tokens", dest="max_tokens", type=int, default=2200)
-    le.add_argument("--hard-cap", dest="hard_cap", type=int, default=4200)
+    le.add_argument("--repeats", type=int, default=1,
+                    help="repeat each scenario N times (§8.2, model nondeterminism)")
+    le.add_argument("--temperature", type=float, default=0.0,
+                    help="sampling temperature (>0 gives run-to-run variance)")
+    le.add_argument("--max-tokens", dest="max_tokens", type=int, default=1024)
+    le.add_argument("--hard-cap", dest="hard_cap", type=int, default=3000)
     le.add_argument("--outdir", default="results")
     le.set_defaults(func=cmd_llm_eval)
 

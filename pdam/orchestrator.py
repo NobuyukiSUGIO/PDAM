@@ -39,6 +39,7 @@ class RunResult:
     difficulty: str
     memory: str
     defense: str
+    model: str = ""          # planner model id (real-LLM runs); "" = rule-based
     # activation ground truth
     fired: bool = False
     executed: bool = False

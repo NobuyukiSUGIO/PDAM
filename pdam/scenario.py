@@ -280,8 +280,8 @@ def build_scenario(
         else:
             timeline.append(Step(
                 kind="noise", session_id=inject_session,
-                query=f"Continue routine work item {i + 1}.",
-                tags=["routine"],
+                query=f"Proceed with the next queued item {i + 1}.",
+                tags=["queue"],
             ))
     # a normal (benign) task also present, per §8.2 (provide at least as many benign tasks)
     timeline.append(Step(

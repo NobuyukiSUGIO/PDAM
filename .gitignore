@@ -12,6 +12,9 @@ dist/
 results/
 scenarios/*.json
 *.jsonl
+# ...but DO keep the committed real-LLM evaluation summaries (§7.2)
+!results/llm/
+!results/llm/**
 
 # Research design document — unpublished; not part of the source upload.
 # Add it manually if you intend to publish it.
