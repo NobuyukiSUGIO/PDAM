@@ -1,7 +1,7 @@
 """PDAM: a reproducible testbed for Persistent-State and Delayed-Activation
 Attacks on Memory-Augmented LLM Agents.
 
-Implements the experimental platform of the研究詳細設計書 (§7, §11): a scenario
+Implements the experimental platform of the research design document (§7, §11): a scenario
 engine (M1), pluggable memory adapters (M2), an attack generator for the A1-A8
 taxonomy (M3), a mock tool sandbox (M4), a policy monitor with the §10 defenses
 (M5), and an evaluator for the §9.1 metrics (M6).

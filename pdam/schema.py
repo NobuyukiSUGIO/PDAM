@@ -1,10 +1,10 @@
 """Core data schema for the PDAM testbed.
 
 Implements the persistent-state data model of the design document
-(Appendix B: データスキーマ). Every persisted item is a ``State`` carrying
+(Appendix B: data schema). Every persisted item is a ``State`` carrying
 provenance, a trust level, a logical creation time, an optional expiry, and
 (for injected malicious states) a ground-truth ``directive`` used to compute
-attack success mechanically (§9.2 / §12: 機械判定).
+attack success mechanically (§9.2 / §12: mechanical judgement).
 
 The module is pure standard library so the whole testbed runs offline.
 """
@@ -61,14 +61,14 @@ class PolicyViolation(str, enum.Enum):
 class AttackType(str, enum.Enum):
     """Attack taxonomy A1-A8 (§5.1)."""
 
-    A1_TIME_DELAY = "A1"          # 時間遅延型
-    A2_EVENT_CONDITIONAL = "A2"   # イベント条件型
-    A3_SPLIT_STATE = "A3"         # 分割状態型
-    A4_SUMMARY_RECONSTRUCT = "A4" # 要約再構成型
-    A5_TRUST_ESCALATION = "A5"    # 信頼度昇格型
-    A6_CROSS_SESSION = "A6"       # 跨セッション型
-    A7_SELF_RESAVE = "A7"         # 自己再保存型
-    A8_TRACE_SUPPRESSION = "A8"   # 痕跡抑制型
+    A1_TIME_DELAY = "A1"          # time-delayed
+    A2_EVENT_CONDITIONAL = "A2"   # event-conditional
+    A3_SPLIT_STATE = "A3"         # split-state
+    A4_SUMMARY_RECONSTRUCT = "A4" # summary-reconstruction
+    A5_TRUST_ESCALATION = "A5"    # trust-escalation
+    A6_CROSS_SESSION = "A6"       # cross-session
+    A7_SELF_RESAVE = "A7"         # self-re-save
+    A8_TRACE_SUPPRESSION = "A8"   # trace-suppression
 
 
 ATTACK_NAMES = {
@@ -105,11 +105,11 @@ def reset_ids() -> None:
 # --------------------------------------------------------------------------- #
 @dataclass
 class Provenance:
-    """来歴: 生成主体、取得元、変換履歴 (§3.2)."""
+    """Provenance: producing agent, source, transform history (§3.2)."""
 
-    author: str = "system"           # 生成主体 who produced the state
-    source: str = "internal"         # 取得元 where it was obtained (email/doc/web/...)
-    transforms: list[str] = field(default_factory=list)  # 変換履歴 (summarize/re-save/...)
+    author: str = "system"           # who produced the state
+    source: str = "internal"         # where it was obtained (email/doc/web/...)
+    transforms: list[str] = field(default_factory=list)  # transform history (summarize/re-save/...)
     external: bool = False           # obtained from an attacker-controllable surface
 
     def with_transform(self, name: str) -> "Provenance":
@@ -194,7 +194,7 @@ class State:
 # --------------------------------------------------------------------------- #
 @dataclass
 class ToolCall:
-    """tool_call object (Appendix B): ツール名、引数、許可判定、結果."""
+    """tool_call object (Appendix B): tool name, arguments, decision, result."""
 
     tool: str
     op: str

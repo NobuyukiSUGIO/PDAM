@@ -277,7 +277,7 @@ class TestConfidenceIntervals(unittest.TestCase):
 
 
 class TestAdaptiveAttack(unittest.TestCase):
-    """§6.2 手順7 adaptive attack."""
+    """§6.2 step 7 adaptive attack."""
 
     def test_adapts_around_content_filter(self):
         sc = build_scenario("personal_secretary", AttackType.A1_TIME_DELAY,

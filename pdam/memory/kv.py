@@ -1,4 +1,4 @@
-"""Key-value memory (キー・バリュー型, §7.2).
+"""Key-value memory (key-value type, §7.2).
 
 States are keyed by their tags (falling back to salient tokens). Retrieval
 matches query tokens against keys, then breaks ties by embedding similarity.

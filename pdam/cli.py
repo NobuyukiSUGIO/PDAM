@@ -237,7 +237,7 @@ def cmd_llm_eval(args):
 
 
 def cmd_adapt(args):
-    """Adaptive attack (§6.2 手順7): retry with payload/trigger mutation until
+    """Adaptive attack (§6.2 step 7): retry with payload/trigger mutation until
     the attack succeeds or the attempt budget is spent, per defense."""
     from .attacks.adaptive import run_adaptive
 

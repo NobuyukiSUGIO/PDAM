@@ -51,9 +51,9 @@ class AttackSpec:
     semantic_distance: float = 0.0           # 0..1 dilution of fragment/query
                                              # similarity (distractor padding)
     save_time_spread: int = 0                # ticks between successive fragment
-                                             # injections (保存時刻差)
+                                             # injections (save-time difference)
     ttl: int = 0                             # state lifetime in ticks (0 = never
-                                             # forgotten); models 忘却/潜伏期間
+                                             # forgotten); models forgetting / dormancy period
 
     def to_dict(self) -> dict[str, Any]:
         d = dict(self.__dict__)
@@ -164,7 +164,7 @@ def _pad(text: str, distance: float) -> str:
 
 
 class AttackGenerator:
-    """攻撃ペイロード、分割、トリガー、適応更新 (§11.1 M3)."""
+    """Attack payload, fragmentation, triggers, adaptive updates (§11.1 M3)."""
 
     @staticmethod
     def _expiry(spec: AttackSpec, created: int) -> Optional[int]:

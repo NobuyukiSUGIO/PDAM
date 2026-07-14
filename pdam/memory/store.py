@@ -23,7 +23,7 @@ def make_adapter(kind: str) -> MemoryAdapter:
 
 
 class MemoryStore:
-    """Responsibility: 会話・要約・成功例・プロファイルの保存 (§7.1)."""
+    """Responsibility: storing conversations, summaries, success cases and profiles (§7.1)."""
 
     def __init__(self, kind: str = "vector") -> None:
         self.adapter = make_adapter(kind)
@@ -54,7 +54,7 @@ class MemoryStore:
         return None
 
     def lineage(self, state_id: str) -> list[State]:
-        """Walk parent_state_id chain back to the root (来歴追跡)."""
+        """Walk parent_state_id chain back to the root (lineage tracing)."""
         chain: list[State] = []
         cur = self.get(state_id)
         seen = set()

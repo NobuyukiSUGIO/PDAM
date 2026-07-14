@@ -2,7 +2,7 @@
 
 Every event carries run_id / session_id / task_id / state_id / parent_state_id
 and a logical tick, and is stored in time order so tables and figures can be
-regenerated deterministically (§12.1 再現性).
+regenerated deterministically (§12.1 reproducibility).
 """
 from __future__ import annotations
 

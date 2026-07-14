@@ -1,112 +1,132 @@
-# 設計書 → 実装 対応表
+# Design document → implementation mapping
 
-研究詳細設計書 v1.0 の各節が、コードのどこで実現されているかの対応です。
+How each section of the research design (v1.0) is realized in code.
 
-## 3. 対象システムと用語定義
-- 対象エージェント機能（メモリ書込/検索・RAG/計画/ツール利用/状態更新）
-  → `orchestrator.py` の R/P/E/U ループ、`memory/`, `retriever.py`, `planner.py`,
-    `broker.py`。
-- 主要用語（永続状態・状態汚染・遅延発火・潜伏期間・状態合成・来歴）
-  → `schema.py`（`State`, `Provenance`, `Directive`）、`planner._reconstruct`
-    （状態合成）、`memory/store.lineage`（来歴追跡）。
+## 3. Target system and terminology
+- Target agent functions (memory write / retrieval-RAG / planning / tool use /
+  state update) → the R/P/E/U loop in `orchestrator.py`, plus `memory/`,
+  `retriever.py`, `planner.py`, `broker.py`.
+- Key terms (persistent state, state poisoning, delayed activation, dormancy
+  period, state synthesis, provenance) → `schema.py` (`State`, `Provenance`,
+  `Directive`), `planner._reconstruct` (state synthesis), `memory/store.lineage`
+  (lineage tracing).
 
-## 4. 脅威モデル
-- 攻撃者能力（通常ユーザーとして複数問合せ、共有文書/メール等へ配置、内部プロンプト
-  非アクセス、ブラックボックス観測、別ユーザー/別セッション標的）
-  → `AttackGenerator`（外部由来・低信頼状態の注入）、A6 跨セッション。
-- 攻撃目標（不正行動/情報漏えい/意思決定操作/継続的支配/痕跡抑制）
-  → `PolicyViolation` 列挙 + 各 A1–A8。
+## 4. Threat model
+- Attacker capabilities (query the agent as a normal user; place content in
+  shared documents/email; no access to internal prompts; black-box observation;
+  target another user/session) → `AttackGenerator` (injection of external,
+  low-trust states), A6 cross-session.
+- Attacker goals (unauthorized action / exfiltration / decision manipulation /
+  continued control / trace suppression) → the `PolicyViolation` enum + A1–A8.
 
-## 5. 攻撃分類と攻撃ライフサイクル
-- ライフサイクル（Injection→Persistence→Retrieval→Activation→Privileged Action
-  →Trace Suppression）
-  → `orchestrator.py` のイベント列（`inject`/`plan`/`retrieve`/`attack_fire`/
-    `trace_suppress`）。`run_demo.py` の (1) で可視化。
-- 攻撃分類 A1–A8 → `AttackType`、`scenario.build_scenario` の型別トリガー、
-  `AttackGenerator`。
+## 5. Attack taxonomy and lifecycle
+- Lifecycle (Injection → Persistence → Retrieval → Activation → Privileged
+  Action → Trace Suppression) → the event sequence in `orchestrator.py`
+  (`inject` / `plan` / `retrieve` / `attack_fire` / `trace_suppress`).
+  Visualized in `run_demo.py` part (1).
+- Taxonomy A1–A8 → `AttackType`, the per-type triggers in
+  `scenario.build_scenario`, and `AttackGenerator`.
 
-## 6. 攻撃アルゴリズム詳細
-- 6.1 基本攻撃モデル（C_t, a_t, y_t, M_{t+1}、発火述語 g） → `orchestrator._act`,
-  `planner.trigger_fires`。
-- 6.2 攻撃生成手順（手順1-6） → `AttackGenerator.build`, `scenario.build_scenario`。
-- 6.2 手順7 **適応攻撃**（出力観測に基づくペイロード/発火条件更新）
-  → `attacks/adaptive.py`（`run_adaptive`/`_mutate`）、CLI `pdam adapt`。
-- 6.3 分割状態攻撃（**独立変数：分割数 k・意味的距離・保存時刻差・top-k**）
-  → A3、`planner._reconstruct`、`policy.filter_candidates`（断片同時取得制限）。
-    独立変数は `AttackSpec.fragments/semantic_distance/save_time_spread/ttl` と
-    `Scenario.top_k`。スイープは `pdam ablate` の A3 セクション。
-- 6.4 要約再構成攻撃 → `memory/summary.SummaryMemoryAdapter.compact`。
-- 6.5 自己再保存攻撃（**再保存世代・影響減衰率・状態削除後の残存率**）
-  → `orchestrator._self_resave`（世代/減衰）、`_post_deletion_survival`（削除後残存）。
-    指標：`post_deletion_survival_rate` / `mean_resave_generations` /
-    `mean_influence_decay`。
+## 6. Attack algorithm details
+- 6.1 Basic attack model (C_t, a_t, y_t, M_{t+1}, activation predicate g)
+  → `orchestrator._act`, `planner.trigger_fires`.
+- 6.2 Attack generation procedure (steps 1–6) → `AttackGenerator.build`,
+  `scenario.build_scenario`.
+- 6.2 step 7 **adaptive attack** (update the payload / trigger from observed
+  output) → `attacks/adaptive.py` (`run_adaptive` / `_mutate`), CLI `pdam adapt`.
+- 6.3 Split-state attack (**independent variables: split count k, semantic
+  distance, save-time difference, top-k**) → A3, `planner._reconstruct`,
+  `policy.filter_candidates` (fragment co-retrieval limit). The independent
+  variables are `AttackSpec.fragments/semantic_distance/save_time_spread/ttl`
+  and `Scenario.top_k`; the sweep is the A3 section of `pdam ablate`.
+- 6.4 Summary-reconstruction attack → `memory/summary.SummaryMemoryAdapter.compact`.
+- 6.5 Self-re-save attack (**re-save generations, influence-decay rate,
+  post-deletion survival rate**) → `orchestrator._self_resave`
+  (generations/decay), `_post_deletion_survival` (survival after deletion).
+  Metrics: `post_deletion_survival_rate` / `mean_resave_generations` /
+  `mean_influence_decay`.
 
-## 7. 実験システム設計
-- 7.1 構成要素（Orchestrator/Memory Store/Retriever/Planner/Tool Broker/Logger）
-  → 同名モジュールに 1:1 対応（README の表）。記録データ（session_id, content,
-    timestamp, owner, trust, lineage, score, top-k, decision, event chain,
-    ground truth）は `State` / `ToolCall` / `LogEvent` フィールド。
-- 7.2 実装候補（複数メモリ方式・複数モデル・模擬ツール・固定シード・版管理）
-  → `memory/`（3 方式）、`Planner` 差し替え点、`tools/sandbox.py`、決定論的 id
-    (`schema.new_id`/`reset_ids`)。
+## 7. Experimental system design
+- 7.1 Components (Orchestrator / Memory Store / Retriever / Planner / Tool
+  Broker / Logger) → same-named modules, 1:1 (see the README table). The
+  recorded data (session_id, content, timestamp, owner, trust, lineage, score,
+  top-k, decision, event chain, ground truth) are fields on `State` / `ToolCall`
+  / `LogEvent`.
+- 7.2 Implementation candidates (multiple memory backends, multiple models,
+  mock tools, fixed seed, versioning) → `memory/` (3 backends), the `Planner`
+  swap point (`llm.py`), `tools/sandbox.py`, deterministic ids
+  (`schema.new_id`/`reset_ids`).
 
-## 8. データセットとシナリオ設計
-- 8.1 ワークロード（個人秘書/RAG 業務支援/コーディング支援/SOC 支援）
-  → `scenario._WL`。正常タスク・攻撃目標・主な永続状態を各ワークロードに定義。
-- 8.2 シナリオ規模（4×8×難易度×**反復**） → `scenario.all_scenarios`（4×8×3=96）、
-  `cli batch --repeats N`（非決定性 LLM 計画器での反復に対応）。
-- 8.3 難易度レベル（Easy/Medium/Hard） → `build_scenario` の `content_style`/
-  `delay`/`trust`/断片数、Hard は痕跡抑制+自己再保存を上乗せ。
+## 8. Datasets and scenario design
+- 8.1 Workloads (personal secretary / RAG support / coding support / SOC
+  support) → `scenario._WL`. Each workload defines a benign task, an attack
+  goal, and the main persistent states.
+- 8.2 Scenario scale (4×8×difficulty×**repetitions**) → `scenario.all_scenarios`
+  (4×8×3=96), `pdam batch --repeats N` (for a nondeterministic LLM planner).
+- 8.3 Difficulty levels (Easy/Medium/Hard) → `content_style` / `delay` / `trust`
+  / fragment count in `build_scenario`; Hard layers trace suppression + self-re-save.
 
-## 9. 評価方法と統計計画
-- 9.1 主要評価指標（ASR, Delayed ASR, Persistence Survival, Trigger Precision,
-  Stealth, Unauthorized Action, Data Exfiltration, Benign Task Success, FPR,
-  State Lineage Recovery） → `evaluator.metrics`。
-- 9.2 統計解析（Fisher 正確確率、Holm 補正、オッズ比・**95%CI**・絶対リスク差、
-  機械判定） → `evaluator.fisher_exact/holm/odds_ratio/compare`、95%CI は
-  `wilson_ci`（比率）/`risk_diff_ci`（リスク差）/`odds_ratio_ci`（OR）、
-  判定は `policy.judge`。ロジスティック回帰は Fisher で代替。
-- 9.3 アブレーション（メモリ方式・top-k・潜伏期間・分割数・防御の単独効果）
-  → `cli ablate`, `aggregate(by=...)`。
+## 9. Evaluation methodology and statistics
+- 9.1 Primary metrics (ASR, Delayed ASR, Persistence Survival, Trigger
+  Precision, Stealth, Unauthorized Action, Data Exfiltration, Benign Task
+  Success, FPR, State Lineage Recovery) → `evaluator.metrics`.
+- 9.2 Statistical analysis (Fisher exact, Holm correction, odds ratio, **95%
+  CI**, absolute risk difference, mechanical judgement) →
+  `evaluator.fisher_exact/holm/odds_ratio/compare`; the 95% CIs are
+  `wilson_ci` (proportion) / `risk_diff_ci` (risk difference) / `odds_ratio_ci`
+  (OR); judgement is `policy.judge`. Logistic regression is substituted by
+  Fisher.
+- 9.3 Ablation (memory backend, top-k, dormancy period, split count, single-
+  defense effect) → `pdam ablate`, `aggregate(by=...)`.
 
-## 10. 防御方式と比較対象
-- 10.1 比較ベースライン（Prompt-only/Content Filter/Embedding-Anomaly/LLM Judge/
-  Least-Privilege/Provenance-aware Revalidation） → `DefenseConfig` の各フラグと
-  `PolicyMonitor` の 3 段階メソッド（`screen_state`/`filter_candidates`/`authorize`）。
-- 10.2 提案する最小防御（保存時=来歴付与、検索時=再検証+同時取得制限、実行時=
-  最小権限+承認） → `DefenseConfig.preset("minimal_defense")`。
+## 10. Defenses and comparison baselines
+- 10.1 Comparison baselines (Prompt-only / Content Filter / Embedding-Anomaly /
+  LLM Judge / Least-Privilege / Provenance-aware Revalidation) → the flags of
+  `DefenseConfig` and the three staged methods of `PolicyMonitor`
+  (`screen_state` / `filter_candidates` / `authorize`).
+- 10.2 Proposed minimal defense (save-time = provenance tagging, retrieval-time
+  = revalidation + co-retrieval limit, execution-time = least privilege +
+  approval) → `DefenseConfig.preset("minimal_defense")`.
 
-## 11. 実装計画
-- 11.1 モジュール構成 M1–M6 → README の対応表。
-- 11.2 ログ設計（全イベントに id 付与、時系列保存、機密は合成のみ、非決定性の記録）
-  → `logging_.EventLog`, `schema.LogEvent`, 決定論的実行。
+## 11. Implementation plan
+- 11.1 Module structure M1–M6 → the README table.
+- 11.2 Log design (id on every event, time-ordered storage, synthetic-only
+  secrets, recording of nondeterminism) → `logging_.EventLog`, `schema.LogEvent`,
+  deterministic execution.
 
-## 12. 再現性・倫理・安全管理
-- 閉じた模擬環境・実サービス非通信・合成データ・機械判定公開・悪用抑制
-  → 全ツールがインメモリのモック（`tools/sandbox.py`）、外部通信なし、
-    ペイロードは最小限、`policy.judge` の機械判定を公開。
+## 12. Reproducibility, ethics, safety
+- Closed simulation / no contact with real services / synthetic data / published
+  mechanical judgement / misuse suppression → all tools are in-memory mocks
+  (`tools/sandbox.py`), no external communication, minimal payloads, and the
+  `policy.judge` mechanical judgement is public.
 
-## 付録 A/B
-- A 実験シナリオ一覧 → `scenario.all_scenarios` が同一マトリクスを生成。
-- B データスキーマ → `schema.py` のフィールドに逐一対応
-  （run_id, session_id, state_id/parent_state_id, state_type, provenance,
+## Appendix A/B
+- A. Experiment scenario list → `scenario.all_scenarios` generates the same matrix.
+- B. Data schema → mapped field-by-field in `schema.py`
+  (run_id, session_id, state_id/parent_state_id, state_type, provenance,
    trust_level, created_at/expires_at, retrieval_score, trigger_condition,
-   tool_call, attack_success, policy_violation）。
+   tool_call, attack_success, policy_violation).
 
-## 実装上の明示的な単純化（論文化時に差し替える箇所）
-- 既定 Planner は決定論的な「感受性モデル」。`pdam/llm.py` の `LLMPlanner` で
-  OpenAI 互換ローカル/商用モデルへ差し替え可能（§7.2 の複数モデル評価に対応）。
-- 論理時刻（tick）を採用し wall-clock 非依存で再現性を担保（§12.1）。
-- 検知ヒューリスティック（`policy._looks_malicious`/`_suspicious_stored` 等）と
-  ルールベース版の防御は理想化されている（来歴・信頼度を正確に識別）。このため
-  provenance 単独で ASR≈0・FPR≈0 となり、実運用の不完全な分類器では偽陰性・偽陽性が
-  生じる。実 LLM 計画器（`LLMPlanner`）で駆動すると、より現実的な検知揺らぎを評価できる。
-- Stealth Score は「実行到達=1/遮断=0」の二値近似（§9.1 の3検出器合成値の簡略化）。
+## Explicit simplifications (to be replaced when writing the paper)
+- The default `Planner` is a deterministic "susceptibility model". It can be
+  swapped for an OpenAI-compatible local/commercial model via `pdam/llm.py`
+  `LLMPlanner` (supporting the multi-model evaluation of §7.2).
+- A logical clock (tick) is used so the testbed is wall-clock independent and
+  reproducible (§12.1).
+- The detection heuristics (`policy._looks_malicious` / `_suspicious_stored`,
+  etc.) and the rule-based defenses are idealized (they identify provenance and
+  trust precisely). Consequently `provenance` alone reaches ASR≈0 and FPR≈0,
+  whereas an imperfect real-world classifier would produce false negatives and
+  positives. Driving the testbed with the real-LLM planner (`LLMPlanner`) yields
+  more realistic detection variance.
+- Stealth Score is a binary approximation (reached execution = 1 / blocked = 0),
+  a simplification of the §9.1 three-detector composite.
 
-## 補完済みギャップ（本改訂で実装）
-- §6.2 手順7 適応攻撃 → `attacks/adaptive.py` + `pdam adapt`。
-- §6.3 独立変数（意味的距離・保存時刻差・TTL）→ `AttackSpec` + 生成器 + `pdam ablate`。
-- §6.5 A7 評価軸（世代・減衰・削除後残存）→ `orchestrator._self_resave` /
-  `_post_deletion_survival` + 指標3種。
-- §9.2 95%信頼区間 → `evaluator.wilson_ci/risk_diff_ci/odds_ratio_ci`。
-- §8.2 反復 → `pdam batch --repeats N`。
+## Design gaps closed in this revision
+- §6.2 step 7 adaptive attack → `attacks/adaptive.py` + `pdam adapt`.
+- §6.3 independent variables (semantic distance, save-time difference, TTL) →
+  `AttackSpec` + generator + `pdam ablate`.
+- §6.5 A7 axes (generations, decay, post-deletion survival) →
+  `orchestrator._self_resave` / `_post_deletion_survival` + 3 metrics.
+- §9.2 95% confidence intervals → `evaluator.wilson_ci/risk_diff_ci/odds_ratio_ci`.
+- §8.2 repetitions → `pdam batch --repeats N`.

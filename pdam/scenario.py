@@ -1,6 +1,6 @@
-"""M1 Scenario Engine definitions (§11.1): 正常・攻撃シナリオの宣言と生成.
+"""M1 Scenario Engine definitions (§11.1): declaration and generation of benign/attack scenarios.
 
-A ``Scenario`` pairs one attack (§8.1: 正常タスクと対になる攻撃タスク) with a
+A ``Scenario`` pairs one attack (§8.1: an attack task paired with a benign task) with a
 timeline of steps over one or more sessions. ``build_scenario`` generates the
 4 workloads × 8 attack types × 3 difficulties matrix of Appendix A, and
 scenarios round-trip to JSON (YAML is also accepted when PyYAML is installed).
@@ -283,7 +283,7 @@ def build_scenario(
                 query=f"Continue routine work item {i + 1}.",
                 tags=["routine"],
             ))
-    # a normal (benign) task also present, per §8.2 (正常タスクを同数以上用意)
+    # a normal (benign) task also present, per §8.2 (provide at least as many benign tasks)
     timeline.append(Step(
         kind="task", session_id=probe_session, query=b["query"],
         tags=list(b["tags"]), authorized_ops=list(b["authorized_ops"]),

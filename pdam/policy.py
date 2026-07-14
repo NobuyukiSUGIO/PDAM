@@ -1,7 +1,7 @@
 """M5 Policy Monitor (§11.1) and the defense baselines (§10).
 
 Provides the six comparison defenses of §10.1 as toggleable components, the
-three-stage 最小防御 of §10.2 as a preset, and the mechanical success /
+three-stage minimal defense of §10.2 as a preset, and the mechanical success /
 violation judgement (§9.2, §12) used by the evaluator. Defenses attach at the
 three lifecycle stages the paper argues must be treated jointly:
 
@@ -38,8 +38,8 @@ class DefenseConfig:
     provenance_revalidation: bool = False # retrieval+exec re-validation
     # parameters
     revalidate_below: TrustLevel = TrustLevel.LOW   # trust needing revalidation
-    stale_ticks: int = 5                  # 長期未検証 threshold
-    max_low_trust_fragments: int = 99     # 複数低信頼断片の同時取得制限 (§10.2)
+    stale_ticks: int = 5                  # long-unverified threshold
+    max_low_trust_fragments: int = 99     # limit on co-retrieving multiple low-trust fragments (§10.2)
     approve_external: bool = False        # non-interactive approval outcome
 
     # ---- factory presets ---- #
@@ -127,7 +127,7 @@ class Decision:
 
 
 class PolicyMonitor:
-    """許可・拒否・情報流・違反判定 (§7.1 Logger/Monitor, §11.1 M5)."""
+    """Allow/deny, information-flow and violation judgement (§7.1 Logger/Monitor, §11.1 M5)."""
 
     def __init__(self, cfg: DefenseConfig) -> None:
         self.cfg = cfg

@@ -1,4 +1,4 @@
-"""Retriever / RAG (§7.1): 埋め込み検索、フィルタリング、ランキング.
+"""Retriever / RAG (§7.1): embedding search, filtering, ranking.
 
 Retrieves candidate states from memory then applies retrieval-time defenses
 (embedding/anomaly filter, provenance revalidation, low-trust fragment

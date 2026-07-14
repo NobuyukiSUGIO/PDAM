@@ -48,9 +48,9 @@ class RunResult:
     fired_on_noise: bool = False
     persisted: bool = False
     resaved: bool = False
-    resave_generations: int = 0          # §6.5 再保存世代
-    influence_decay: float = 1.0         # §6.5 影響減衰率 (remaining influence)
-    post_deletion_survival: bool = False # §6.5 状態削除後の残存
+    resave_generations: int = 0          # §6.5 re-save generations
+    influence_decay: float = 1.0         # §6.5 influence decay rate (remaining influence)
+    post_deletion_survival: bool = False # §6.5 survival after state deletion
     trace_suppressed: bool = False
     lineage_recoverable: bool = True
     violation: str = "none"
@@ -238,7 +238,7 @@ class Orchestrator:
             self._self_resave(action, tick, step)
 
     def _suppress_trace(self, tick, step) -> None:
-        """A8 痕跡抑制: tamper with the audit trail after firing."""
+        """A8 trace-suppression: tamper with the audit trail after firing."""
         supp = ToolCall(tool="log", op="delete", args={"target": "audit"})
         # attacker-driven; still mediated, but with no user intent it is a
         # trace-suppression violation of its own.
@@ -248,10 +248,10 @@ class Orchestrator:
             self.log.emit("trace_suppress", tick, step.session_id, step.kind,
                           tool="log", op="delete")
 
-    DECAY = 0.8   # per-generation influence decay (§6.5 影響減衰率)
+    DECAY = 0.8   # per-generation influence decay (§6.5 influence decay rate)
 
     def _self_resave(self, action, tick, step) -> None:
-        """A7 自己再保存: re-persist the outcome so influence survives deletion.
+        """A7 self-re-save: re-persist the outcome so influence survives deletion.
 
         Each re-save is a new generation whose influence decays geometrically;
         the resaved copy is authored by the agent (not the attacker), so it has
@@ -330,7 +330,7 @@ class Orchestrator:
             r.stealth = 1.0 if r.executed else 0.0
         # lineage recovery (§9.1 State Lineage Recovery)
         r.lineage_recoverable = self._lineage_recoverable() and not r.trace_suppressed
-        # §6.5 状態削除後の残存: delete the attacker-authored originals and see
+        # §6.5 survival after state deletion: delete the attacker-authored originals and see
         # whether a re-saved copy can still drive the attack on the probe.
         if r.resave_generations > 0:
             r.post_deletion_survival = self._post_deletion_survival()

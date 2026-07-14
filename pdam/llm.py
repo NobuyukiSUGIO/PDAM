@@ -2,7 +2,7 @@
 
 Replaces the deterministic ``RuleBasedPlanner`` with a genuine model that reads
 the *natural-language* content of retrieved memory notes and decides which tool
-calls to make (§7.2: 実 LLM への差し替え). Susceptibility, state synthesis
+calls to make (§7.2: swapping in a real LLM). Susceptibility, state synthesis
 (reassembling A3 fragments, reading A4 summaries) and delayed/conditional
 activation become *emergent* behaviours of the model rather than hard-coded, so
 the testbed measures what an actual agent would do.

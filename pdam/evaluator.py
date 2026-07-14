@@ -1,4 +1,4 @@
-"""M6 Evaluator (§11.1): 指標算定、統計、可視化.
+"""M6 Evaluator (§11.1): metric computation, statistics, visualization.
 
 Computes the §9.1 metrics from a set of ``RunResult`` objects, aggregates by
 any grouping key, and provides the §9.2 statistical primitives (Fisher exact

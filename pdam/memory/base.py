@@ -1,6 +1,6 @@
 """Common memory-adapter API (M2 Memory Adapter, §11.1).
 
-Three memory方式 are provided (vector / summary / KV, §7.2) behind one
+Three memory backends are provided (vector / summary / KV, §7.2) behind one
 interface so scenarios can swap them and the retriever code stays unchanged.
 """
 from __future__ import annotations

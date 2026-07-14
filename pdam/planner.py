@@ -1,12 +1,12 @@
-"""LLM Planner (§6.1 P, §7.1): 検索結果と現在入力から行動計画を生成.
+"""LLM Planner (§6.1 P, §7.1): builds an action plan from retrieved context and current input.
 
 ``RuleBasedPlanner`` is a deterministic, reproducible stand-in for a
 susceptible LLM. It performs the two operations the threat model cares about:
 
-  1. 状態合成 (state synthesis): it reconstructs attack directives from the
+  1. State synthesis: it reconstructs attack directives from the
      retrieved states, including reassembling A3 split fragments and reading
      directives that survived A4 summarization.
-  2. 発火判定 (activation): it evaluates each directive's trigger predicate
+  2. Activation: it evaluates each directive's trigger predicate
      g(x_t, C_t, s_t) (§6.1) against the current context and only emits the
      malicious tool call when the trigger fires — modelling delayed / conditional
      activation rather than immediate injection.
@@ -53,7 +53,7 @@ class TriggerContext:
 
 
 # --------------------------------------------------------------------------- #
-# Trigger evaluation (§6.1 発火述語 g)
+# Trigger evaluation (§6.1 activation predicate g)
 # --------------------------------------------------------------------------- #
 def trigger_fires(directive: Directive, carrying: State, ctx: TriggerContext) -> bool:
     trig = directive.trigger or {"type": "none"}
@@ -108,7 +108,7 @@ class RuleBasedPlanner(Planner):
             plan.actions.append(Action(kind="benign", tool_call=benign_action,
                                        text=f"handle task: {query}"))
 
-        # (2) reconstruct directives from retrieved states (状態合成)
+        # (2) reconstruct directives from retrieved states (state synthesis)
         for directive, carrier in self._reconstruct(retrieved):
             if trigger_fires(directive, carrier, ctx):
                 call = ToolCall(

@@ -1,8 +1,8 @@
-"""Conversation-summary memory (会話要約型, §7.2).
+"""Conversation-summary memory (conversation-summary type, §7.2).
 
 Holds raw items plus a periodically-compacted summary state. ``compact``
 merges the oldest raw items into the running summary — the operation the
-A4 要約再構成 attack exploits: benign-looking fragments become one
+A4 summary-reconstruction attack exploits: benign-looking fragments become one
 consolidated instruction inside the summary (§6.4).
 """
 from __future__ import annotations
@@ -50,7 +50,7 @@ class SummaryMemoryAdapter(MemoryAdapter):
         Returns the (new or updated) summary state, or ``None`` if there is
         nothing to compact. Any directive-bearing fragment folded into the
         summary is re-expressed as a single consolidated instruction, and its
-        trust is lifted to the summary's own level (信頼度昇格の副作用).
+        trust is lifted to the summary's own level (a trust-escalation side effect).
         """
         raw = sorted(
             (s for s in self._states.values()

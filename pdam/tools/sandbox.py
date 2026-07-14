@@ -1,7 +1,7 @@
-"""M4 Tool Sandbox (§11.1): 模擬メール・ファイル・コード・チケット・SOC ツール.
+"""M4 Tool Sandbox (§11.1): mock email / file / code / ticket / SOC tools.
 
 All tools are simulated in-process. No real service is ever contacted
-(§12.2 安全管理). Each tool records its calls and returns canned results, and
+(§12.2 safety controls). Each tool records its calls and returns canned results, and
 exposes the metadata the policy monitor needs to judge exfiltration /
 unauthorized action / integrity violations mechanically.
 """
@@ -177,7 +177,7 @@ class SocTool(Tool):
 
 
 class LogTool(Tool):
-    """Audit-log surface; A8 痕跡抑制 targets this."""
+    """Audit-log surface; A8 trace-suppression targets this."""
 
     name = "log"
     high_privilege_ops = {"edit", "delete"}
@@ -193,7 +193,7 @@ class LogTool(Tool):
 
 
 class ToolSandbox:
-    """Registry of mock tools (安全なコンテナ環境 stand-in)."""
+    """Registry of mock tools (safe sandboxed-container stand-in)."""
 
     def __init__(self) -> None:
         self.tools: dict[str, Tool] = {

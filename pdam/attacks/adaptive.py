@@ -1,4 +1,4 @@
-"""Adaptive attacker (§6.2 手順7): 出力観測に基づきペイロードまたは発火条件を更新する.
+"""Adaptive attacker (§6.2 step 7): update the payload or trigger from observed output.
 
 The attacker runs the agent, observes *which* stage stopped the attack (from the
 black-box signals the threat model allows — a blocked tool call, a refusal, a

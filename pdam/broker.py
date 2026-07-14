@@ -1,4 +1,4 @@
-"""Tool Broker (§7.1): ポリシー確認・権限付与・ツール呼出.
+"""Tool Broker (§7.1): policy check, privilege granting, tool invocation.
 
 Every tool call is mediated: the broker asks the PolicyMonitor to authorize
 the call (execution-time defenses), executes it in the sandbox only if allowed,
