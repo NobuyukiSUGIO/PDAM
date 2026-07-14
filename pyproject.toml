@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pdam"
+version = "1.0.0"
+description = "Testbed for Persistent-State and Delayed-Activation Attacks on Memory-Augmented LLM Agents"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Agentic AI Security Research" }]
+keywords = ["llm-agents", "security", "memory-poisoning", "prompt-injection", "benchmark"]
+dependencies = []                       # pure standard library
+
+[project.optional-dependencies]
+yaml = ["PyYAML>=6"]                     # optional: .yaml scenario files
+dev = ["pytest>=7"]
+
+[project.scripts]
+pdam = "pdam.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["pdam*"]

@@ -1,0 +1,4 @@
+# PDAM core runs on the Python standard library only (Python >= 3.10).
+# Optional extras:
+# PyYAML>=6      # to load .yaml scenario files (JSON works without it)
+# pytest>=7      # alternative test runner (unittest works without it)

@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+
+# Generated artifacts (regenerate with `pdam gen-scenarios` / `pdam batch`)
+results/
+scenarios/*.json
+*.jsonl
+
+# Research design document — unpublished; not part of the source upload.
+# Add it manually if you intend to publish it.
+*.pdf
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
