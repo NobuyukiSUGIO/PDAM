@@ -15,11 +15,28 @@ ADAPTERS = {
     "kv": KVMemoryAdapter,
 }
 
+# Real-framework backends (§5.4) are imported lazily so the pure-stdlib testbed
+# never needs langchain / llama-index installed. Keys map to (module, class).
+_REAL_ADAPTERS = {
+    "lc_vector": (".real_langchain", "LCVectorAdapter"),
+    "lc_summary": (".real_langchain", "LCSummaryAdapter"),
+    "lc_kv": (".real_langchain", "LCKVAdapter"),
+    "li_vector": (".real_llamaindex", "LIVectorAdapter"),
+    "li_summary": (".real_llamaindex", "LISummaryAdapter"),
+    "li_kv": (".real_llamaindex", "LIKVAdapter"),
+}
+
 
 def make_adapter(kind: str) -> MemoryAdapter:
-    if kind not in ADAPTERS:
-        raise ValueError(f"unknown memory kind {kind!r}; choose {list(ADAPTERS)}")
-    return ADAPTERS[kind]()
+    if kind in ADAPTERS:
+        return ADAPTERS[kind]()
+    if kind in _REAL_ADAPTERS:
+        import importlib
+        mod_name, cls_name = _REAL_ADAPTERS[kind]
+        mod = importlib.import_module(mod_name, package=__package__)
+        return getattr(mod, cls_name)()
+    raise ValueError(f"unknown memory kind {kind!r}; choose "
+                     f"{list(ADAPTERS) + list(_REAL_ADAPTERS)}")
 
 
 class MemoryStore:
@@ -49,8 +66,9 @@ class MemoryStore:
         return self.adapter.forget_expired(now)
 
     def maybe_compact(self, now: int) -> Optional[State]:
-        if isinstance(self.adapter, SummaryMemoryAdapter):
-            return self.adapter.compact(now)
+        compact = getattr(self.adapter, "compact", None)
+        if callable(compact):
+            return compact(now)
         return None
 
     def lineage(self, state_id: str) -> list[State]:

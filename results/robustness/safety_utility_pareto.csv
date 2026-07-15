@@ -1,0 +1,10 @@
+defense,attack_asr,call_allow_rate,task_completion,external_legit_fpr,confirmations
+none,1.0000,1.0000,1.0000,0.0000,0
+content_filter,0.7604,1.0000,1.0000,0.0000,0
+least_privilege,0.5000,1.0000,1.0000,0.0000,0
+provenance,0.0000,0.5588,0.4643,0.8333,0
+minimal_defense,0.0000,0.5588,0.4643,0.8333,0
+block_external,0.0000,0.5588,0.4643,0.8333,0
+confirm_all,0.0000,1.0000,1.0000,0.0000,46
+confirm_external,0.0000,1.0000,1.0000,0.0000,30
+memory_disabled,0.0000,0.5588,0.4643,0.8333,0

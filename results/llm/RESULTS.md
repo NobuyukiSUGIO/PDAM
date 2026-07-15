@@ -16,9 +16,11 @@ Planner = a real open-weight model served by LM Studio; each emitted tool call i
 | mistral-small-24b-instruct-2501 | minimal_defense | 96 | 0.000 | 0.000 | 0.000 | 0.000 | 0.104 | 0.953 | 0.047 | 1.000 |
 | mistral-small-24b-instruct-2501 | none | 96 | 1.000 | 1.000 | 1.000 | 0.458 | 0.479 | 1.000 | 0.000 | 0.750 |
 
-## minimal_defense vs none (Fisher exact, 95% CI) per model
+## minimal_defense vs none per model
 
-- **gemma-2-27b-it**: none ASR=96/96=1.000, minimal ASR=0/96=0.000 [0.000,0.038]  RD=-1.000 [-1.000,-1.000]  p=4.51e-13
-- **meta-llama-3.1-8b-instruct**: none ASR=91/96=0.948, minimal ASR=0/96=0.000 [0.000,0.038]  RD=-0.948 [-0.992,-0.903]  p=1.28e-12
-- **mistral-7b-instruct-v0.3**: none ASR=96/96=1.000, minimal ASR=0/96=0.000 [0.000,0.038]  RD=-1.000 [-1.000,-1.000]  p=4.51e-13
-- **mistral-small-24b-instruct-2501**: none ASR=96/96=1.000, minimal ASR=0/96=0.000 [0.000,0.038]  RD=-1.000 [-1.000,-1.000]  p=4.51e-13
+Raw success counts, Wilson 95% CI for the defended arm, absolute risk difference (RD), two-sided Fisher exact p, and the *paired* exact McNemar p (the same scenario is run under both arms). When the defended arm has zero successes, McNemar's discordant counts are (b=none successes, c=0), so pairing order is irrelevant.
+
+- **gemma-2-27b-it**: none ASR=96/96=1.000, minimal ASR=0/96=0.000 (Wilson 95% CI [0.000,0.038])  RD=-1.000 [-1.000,-1.000]  Fisher p=5.54e-57  McNemar p=2.52e-29
+- **meta-llama-3.1-8b-instruct**: none ASR=91/96=0.948, minimal ASR=0/96=0.000 (Wilson 95% CI [0.000,0.038])  RD=-0.948 [-0.992,-0.903]  Fisher p=4.39e-49  McNemar p=8.08e-28
+- **mistral-7b-instruct-v0.3**: none ASR=96/96=1.000, minimal ASR=0/96=0.000 (Wilson 95% CI [0.000,0.038])  RD=-1.000 [-1.000,-1.000]  Fisher p=5.54e-57  McNemar p=2.52e-29
+- **mistral-small-24b-instruct-2501**: none ASR=96/96=1.000, minimal ASR=0/96=0.000 (Wilson 95% CI [0.000,0.038])  RD=-1.000 [-1.000,-1.000]  Fisher p=5.54e-57  McNemar p=2.52e-29

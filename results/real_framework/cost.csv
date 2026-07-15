@@ -1,0 +1,6 @@
+backend,defense,attack,latency_ms_mean,latency_ms_sd
+vector,none,A2,341.0,456.6
+vector,minimal_defense,A2,144.6,12.5
+-,screen_state_us,-,0.0033,0
+summary,summariser_call,-,3842.1,0
+vector,storage_states,-,6,93

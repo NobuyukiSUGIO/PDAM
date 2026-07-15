@@ -62,8 +62,11 @@ def _mutate(spec: AttackSpec, blocked_by: str, fired: bool) -> str:
         spec.content_style = "natural"
         return "obfuscate arguments"
     if blocked_by == "provenance_revalidation":
-        # try to launder trust; a provenance-aware defense still traces it, so
-        # this is the case where adaptation is expected to fail.
+        # transform-based laundering (promote/summarize/re-save) leaves a trace
+        # the provenance oracle reads, so it is caught — this is the case where
+        # PAYLOAD adaptation is expected to fail. Attacking the oracle itself
+        # (trusted-tool echo) is a separate, stronger threat evaluated in
+        # §5.9 (oracle_attack_sweep), not part of the payload-level loop.
         spec.escalate_to = TrustLevel.HIGH
         spec.trust = TrustLevel.LOW
         return "attempt trust escalation (launder provenance)"

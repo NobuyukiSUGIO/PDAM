@@ -14,7 +14,7 @@ import pathlib
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
-from pdam.evaluator import compare, holm  # noqa: E402
+from pdam.evaluator import compare, holm, mcnemar_exact, wilson_ci  # noqa: E402
 
 
 def mean(xs):
@@ -103,22 +103,35 @@ def main(root):
                      "{trigger_precision:.3f} | {benign_task_success:.3f} | "
                      "{false_positive_rate:.3f} | {state_lineage_recovery:.3f} |".format(**r))
 
-    lines += ["", "## minimal_defense vs none (Fisher exact, 95% CI) per model", ""]
+    lines += ["", "## minimal_defense vs none per model", "",
+              "Raw success counts, Wilson 95% CI for the defended arm, absolute "
+              "risk difference (RD), two-sided Fisher exact p, and the *paired* "
+              "exact McNemar p (the same scenario is run under both arms). When "
+              "the defended arm has zero successes, McNemar's discordant counts "
+              "are (b=none successes, c=0), so pairing order is irrelevant.", ""]
     for model in models:
         none = [r for r in rows if r["model"] == model and r["defense"] == "none"]
         mind = [r for r in rows if r["model"] == model and r["defense"] == "minimal_defense"]
         if not none or not mind:
             continue
-        a_s = sum(r["success"] for r in mind)
-        b_s = sum(r["success"] for r in none)
+        a_s = sum(r["success"] for r in mind)   # defended successes
+        b_s = sum(r["success"] for r in none)   # baseline successes
         c = compare(f"{model}", a_s, len(mind), b_s, len(none))
         holm([c])
+        lo, hi = wilson_ci(a_s, len(mind))
+        # paired McNemar: discordant b = baseline succ & defended fail,
+        # c = baseline fail & defended succ. With a_s == 0 this is exact.
+        b_disc = sum(1 for r_n, r_m in zip(none, mind)
+                     if r_n["success"] and not r_m["success"]) if a_s else b_s
+        c_disc = sum(1 for r_n, r_m in zip(none, mind)
+                     if r_m["success"] and not r_n["success"]) if a_s else 0
+        mc_p = mcnemar_exact(b_disc, c_disc)
         lines.append(
             f"- **{model}**: none ASR={b_s}/{len(none)}={b_s/len(none):.3f}, "
             f"minimal ASR={a_s}/{len(mind)}={a_s/len(mind):.3f} "
-            f"[{c.a_ci[0]:.3f},{c.a_ci[1]:.3f}]  "
+            f"(Wilson 95% CI [{lo:.3f},{hi:.3f}])  "
             f"RD={c.risk_diff:+.3f} [{c.rd_ci[0]:+.3f},{c.rd_ci[1]:+.3f}]  "
-            f"p={c.p_value:.3g}")
+            f"Fisher p={c.p_value:.3g}  McNemar p={mc_p:.3g}")
 
     pathlib.Path(f"{root}/RESULTS.md").write_text("\n".join(lines) + "\n")
     print("\n".join(lines))

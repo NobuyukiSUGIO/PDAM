@@ -54,6 +54,11 @@ class AttackSpec:
                                              # injections (save-time difference)
     ttl: int = 0                             # state lifetime in ticks (0 = never
                                              # forgotten); models forgetting / dormancy period
+    # §5.9 oracle-integrity attacks: instead of mutating the payload, corrupt the
+    # provenance the defense reads. "trusted_echo" forges the origin as a trusted
+    # tool's output (no laundering transform), so even a perfect provenance oracle
+    # sees legitimate high authority. "" = no oracle attack (payload-only).
+    oracle_attack: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         d = dict(self.__dict__)
@@ -85,6 +90,7 @@ class AttackSpec:
             semantic_distance=float(d.get("semantic_distance", 0.0)),
             save_time_spread=int(d.get("save_time_spread", 0)),
             ttl=int(d.get("ttl", 0)),
+            oracle_attack=d.get("oracle_attack", ""),
         )
 
 
@@ -170,9 +176,24 @@ class AttackGenerator:
     def _expiry(spec: AttackSpec, created: int) -> Optional[int]:
         return (created + spec.ttl) if spec.ttl and spec.ttl > 0 else None
 
+    @staticmethod
+    def _provenance(spec: AttackSpec):
+        """Return (provenance, forced_trust). §5.9 oracle-integrity attacks forge
+        the recorded origin so the defense's provenance check is fooled even with
+        a perfect oracle. Default is honest attacker provenance."""
+        if spec.oracle_attack == "trusted_echo":
+            # laundered through a trusted tool that echoed the attacker's input:
+            # the store records the tool as author, internal, no laundering mark.
+            return (Provenance(author="trusted_tool", source="tool_result",
+                               transforms=[], external=False),
+                    TrustLevel.HIGH)
+        return (Provenance(author="attacker", source=spec.source,
+                           transforms=[], external=spec.external), None)
+
     def build(self, spec: AttackSpec, now: int, session_id: str) -> list[State]:
-        prov = Provenance(author="attacker", source=spec.source,
-                          transforms=[], external=spec.external)
+        prov, forced_trust = self._provenance(spec)
+        if forced_trust is not None:
+            spec = AttackSpec.from_dict({**spec.to_dict(), "trust": int(forced_trust)})
         directive_text = self._directive_text(spec)
 
         base_directive = Directive(

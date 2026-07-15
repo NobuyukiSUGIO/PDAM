@@ -141,10 +141,12 @@ defense" of §10.2 are provided.
 `Evaluator` computes: Attack Success Rate, Delayed ASR, Persistence Survival
 Rate, Trigger Precision, Stealth Score, Unauthorized Action Rate, Data
 Exfiltration Rate, Benign Task Success, False Positive Rate, and State Lineage
-Recovery. Defense comparisons use the **Fisher exact test**, multiple
-comparisons use the **Holm correction**, and effect sizes are reported as the
-**odds ratio, absolute risk difference, and 95% confidence intervals** (Wilson
-for proportions; all in the standard library, no scipy).
+Recovery, an **authority-amplification rate**, and a nested **lifecycle funnel**.
+Because each scenario is run under both arms, defense comparisons use the
+**paired exact McNemar test** (primary) and the **Fisher exact test** (reference);
+multiple comparisons use the **Holm correction**, and effect sizes are reported
+as the **odds ratio, absolute risk difference, and 95% confidence intervals**
+(Wilson for proportions; all in the standard library, no scipy).
 
 ### Representative results (96 scenarios × each defense, fixed seed)
 
@@ -167,10 +169,22 @@ This table directly exhibits the design's hypotheses:
   summarization, bypassing `content_filter` and `least_privilege` — only
   `provenance` stops it.
 - **H4** (provenance-aware revalidation + execution-time least privilege): the
-  `minimal_defense` reaches ASR = 0 while keeping Benign Task Success = 1.0 and
-  FPR = 0, i.e. **it suppresses all attacks without sacrificing utility**.
+  `minimal_defense` reaches no observed attack success (Wilson 95% upper bound
+  0.038) while keeping Benign Task Success = 1.0 on the **internal** benign tasks.
+  ⚠️ This is not "no utility cost": on legitimate tasks that must act on
+  **external / derived** memory, hard provenance blocking blocks *all* of them
+  (external-task FPR = 1.0). The `confirm_external` variant escalates such actions
+  to user confirmation, recovering full legitimate-task success at a bounded
+  confirmation cost while keeping attack ASR = 0. See `pdam robustness`.
 - **State Lineage Recovery**: 0.500 under `none` (A8 trace suppression and A4
   summarization destroy the lineage); 1.0 under `provenance` / `minimal_defense`.
+
+> **Note (statistics).** A tail-tolerance bug in `fisher_exact` (an absolute
+> `1e-12` floor) understated near-perfect-separation p-values by ~40 orders of
+> magnitude; it is fixed (relative tolerance, regression-tested). Because each
+> scenario is run under both arms, the **paired McNemar exact test** is now the
+> primary test (Fisher is reported for reference), and ASR = 0 is reported as
+> "no observed success" with a Wilson upper bound rather than a literal zero.
 
 ---
 
@@ -191,6 +205,32 @@ Beyond the core, the following design items are also implemented:
 - **§9.2 95% confidence intervals**: Wilson (proportion), Wald (risk
   difference), log-OR (odds ratio).
 - **§8.2 repetitions**: `pdam batch --repeats N`.
+
+---
+
+## Reviewer-driven robustness experiments (`pdam robustness`)
+
+`python -m pdam robustness` runs four experiments that stress the defense
+evaluation beyond the idealized benchmark (byte-reproducible; CSVs written to
+`results/robustness/`):
+
+- **Leave-one-component-out** of the 3-stage minimal defense. On the *oracle*
+  benchmark, removing provenance revalidation is the only single removal that
+  readmits attacks (ASR 0.333); the other stages are individually redundant.
+- **Non-oracle provenance.** The defense sees an *estimated* provenance
+  (`prov_trust_noise`, `prov_dropout`, seeded via SHA-1). Under provenance
+  dropout, provenance-only degrades to ASR 0.250 while the 3-stage defense holds
+  at 0.083 — a 3× reduction that justifies the redundant stages once provenance
+  is imperfect. This separates the **oracle ceiling** from realistic performance.
+- **Safety/utility Pareto** over a legitimate-task suite (`pdam/utility.py`) in
+  which 4 of 7 tasks must act on external / derived memory. Shows the external-FPR
+  cost of hard provenance blocking and how `confirm_external` resolves it.
+- **Lifecycle funnel** (write → survive → retrieve → synthesize → dispatch →
+  effect), showing the three defenses act at three different stages.
+
+New defense presets added for this analysis: `memory_disabled`, `block_external`,
+`confirm_all`, `confirm_external`, and `minimal_minus_{content_filter,
+provenance, least_privilege, fragment_limit}`.
 
 ---
 

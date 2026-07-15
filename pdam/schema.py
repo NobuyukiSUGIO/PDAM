@@ -11,9 +11,20 @@ The module is pure standard library so the whole testbed runs offline.
 from __future__ import annotations
 
 import enum
+import hashlib
 import itertools
 from dataclasses import dataclass, field, asdict
 from typing import Any, Optional
+
+
+def det_unit(*parts) -> float:
+    """Deterministic pseudo-random value in [0,1) from the given parts.
+
+    Uses SHA-1 (not Python's salted ``hash``) so results are byte-identical
+    across processes and machines — used for reproducible provenance-noise
+    injection (§4.2 non-oracle evaluation) and any other seeded jitter."""
+    h = hashlib.sha1("|".join(str(p) for p in parts).encode()).digest()
+    return int.from_bytes(h[:8], "big") / float(1 << 64)
 
 
 # --------------------------------------------------------------------------- #

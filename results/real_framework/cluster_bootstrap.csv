@@ -1,0 +1,5 @@
+model,n_scenarios,asr_none,ci_lo,ci_hi
+meta-llama-3.1-8b-instruct,32,0.9479,0.9062,0.9896
+mistral-7b-instruct-v0.3,32,1.0000,1.0000,1.0000
+mistral-small-24b-instruct-2501,32,1.0000,1.0000,1.0000
+gemma-2-27b-it,32,1.0000,1.0000,1.0000

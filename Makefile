@@ -1,8 +1,9 @@
-.PHONY: help test scenarios demo batch ablate clean
+.PHONY: help test check scenarios demo batch ablate clean
 
 help:
 	@echo "PDAM testbed — targets:"
 	@echo "  make test       run the unit + integration test suite"
+	@echo "  make check      recompute every paper table and cross-check its values"
 	@echo "  make scenarios  generate the 96-scenario Appendix-A matrix"
 	@echo "  make demo       run one representative scenario with a trace"
 	@echo "  make batch      run all scenarios × defenses, write results/"
@@ -11,6 +12,11 @@ help:
 
 test:
 	python3 -m unittest discover -s tests
+
+# Recompute every numeric table from code / committed CSVs / raw run data and
+# diff against the values printed in the paper (fails on any mismatch).
+check:
+	PYTHONPATH=. python3 scripts/consistency_check.py
 
 scenarios:
 	python3 -m pdam gen-scenarios scenarios/

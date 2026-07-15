@@ -1,0 +1,7 @@
+difficulty,defense,asr,n
+easy,minimal_defense,0.0000,6
+easy,none,1.0000,6
+hard,minimal_defense,0.0000,6
+hard,none,1.0000,6
+medium,minimal_defense,0.0000,6
+medium,none,1.0000,6

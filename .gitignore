@@ -12,9 +12,18 @@ dist/
 /results/*
 scenarios/*.json
 *.jsonl
-# ...but DO keep the committed real-LLM evaluation results (§7.2)
+# ...but DO keep the committed evaluation results
 !/results/llm/
+!/results/deterministic/
+!/results/robustness/
+!/results/real_framework/
 results/llm/run.log
+
+# Real-framework evaluation virtualenv (§5.4 extras: langchain/llama-index/…);
+# large and machine-specific — regenerate from requirements-real.txt.
+.venv-real/
+.venv/
+venv/
 
 # Research design document — unpublished; not part of the source upload.
 # Add it manually if you intend to publish it.

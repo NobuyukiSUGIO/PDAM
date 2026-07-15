@@ -308,5 +308,81 @@ class TestScenarioMatrix(unittest.TestCase):
         self.assertEqual(sc2.attack.attack_type, sc.attack.attack_type)
 
 
+class TestStatisticsFixes(unittest.TestCase):
+    def test_fisher_extreme_separation(self):
+        # regression: an absolute tail-tolerance made near-perfect separation
+        # return ~1e-13 instead of ~1e-57. Verify the correct magnitude.
+        p = fisher_exact(0, 96, 96, 0)          # 0/96 vs 96/96
+        self.assertLess(p, 1e-50)
+        self.assertGreater(p, 1e-60)
+        # matches a hand computation of 2 * C(96,0)C(96,96)/C(192,96)
+        import math
+        expect = 2 * math.comb(96, 0) * math.comb(96, 96) / math.comb(192, 96)
+        self.assertAlmostEqual(p, expect, delta=expect * 1e-6)
+
+    def test_mcnemar_exact(self):
+        from pdam.evaluator import mcnemar_exact, mcnemar_paired
+        self.assertAlmostEqual(mcnemar_exact(0, 0), 1.0)
+        # 96 discordant pairs all one direction -> extremely significant
+        self.assertLess(mcnemar_exact(0, 96), 1e-25)
+        pairs = [(True, False)] * 90 + [(True, True)] * 6
+        p, b, c = mcnemar_paired(pairs)
+        self.assertEqual((b, c), (90, 0))
+        self.assertLess(p, 1e-20)
+
+    def test_det_unit_reproducible(self):
+        from pdam.schema import det_unit
+        self.assertEqual(det_unit("a", 1, "x"), det_unit("a", 1, "x"))
+        self.assertTrue(0.0 <= det_unit("a", 1, "x") < 1.0)
+        self.assertNotEqual(det_unit("a", 1, "x"), det_unit("a", 2, "x"))
+
+
+class TestReviewerExperiments(unittest.TestCase):
+    def test_provenance_is_load_bearing(self):
+        from pdam.experiments import leave_one_out
+        rows = {r["config"]: r for r in leave_one_out()}
+        self.assertEqual(rows["minimal_defense"]["asr"], 0.0)
+        # removing provenance revalidation is the only single removal that
+        # readmits attacks on the static benchmark
+        self.assertGreater(rows["minimal_minus_provenance"]["asr"], 0.0)
+        self.assertEqual(rows["minimal_minus_content_filter"]["asr"], 0.0)
+        self.assertEqual(rows["minimal_minus_least_privilege"]["asr"], 0.0)
+
+    def test_non_oracle_provenance_degrades_but_stages_help(self):
+        from pdam.experiments import non_oracle_provenance
+        rows = non_oracle_provenance()
+        oracle = [r for r in rows if r["trust_noise"] == 0 and r["dropout"] == 0][0]
+        self.assertEqual(oracle["provenance_only_asr"], 0.0)
+        noisy = [r for r in rows if r["dropout"] == 0.5 and r["trust_noise"] == 0][0]
+        # under provenance dropout, provenance-only lets attacks through, and
+        # the extra stages of the 3-stage defense cut the residual ASR
+        self.assertGreater(noisy["provenance_only_asr"], 0.0)
+        self.assertLess(noisy["minimal_3stage_asr"], noisy["provenance_only_asr"])
+
+    def test_legit_external_tasks_incur_fpr(self):
+        from pdam.utility import run_utility
+        from pdam.policy import DefenseConfig
+        prov = run_utility(DefenseConfig.preset("provenance"))
+        # provenance hard-blocks every external *privileged* action, so no
+        # external task completes end-to-end
+        self.assertEqual(prov.ext_tasks_completed, 0)
+        conf = run_utility(DefenseConfig.preset("confirm_external"))
+        self.assertEqual(conf.call_allow_rate, 1.0)          # user approves legit
+        self.assertEqual(conf.task_completion_rate, 1.0)     # all tasks complete
+        self.assertGreater(conf.confirmations, 0)
+
+    def test_confirm_external_keeps_asr_zero(self):
+        runs = [Orchestrator(sc).run()
+                for sc in all_scenarios(defense="confirm_external")]
+        self.assertEqual(metrics(runs)["asr"], 0.0)
+
+    def test_funnel_is_monotone(self):
+        from pdam.experiments import funnel, FUNNEL_STAGES
+        for row in funnel():
+            vals = [row[s] for s in FUNNEL_STAGES]
+            self.assertTrue(all(a >= b - 1e-9 for a, b in zip(vals, vals[1:])),
+                            f"funnel not monotone: {row}")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

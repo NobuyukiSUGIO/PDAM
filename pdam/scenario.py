@@ -207,6 +207,7 @@ def build_scenario(
     semantic_distance: float = 0.0,
     save_time_spread: int = 0,
     ttl: int = 0,
+    dormancy: Optional[int] = None,
 ) -> Scenario:
     if workload not in _WL:
         raise ValueError(f"unknown workload {workload!r}")
@@ -214,7 +215,10 @@ def build_scenario(
         raise ValueError(f"unknown difficulty {difficulty!r}")
     wl = _WL[workload]
     style = "obvious" if difficulty == "easy" else "natural"
-    delay = _DELAY[difficulty]
+    # dormancy overrides the difficulty-default filler length (§5.4/D long-horizon
+    # 10/50/100-turn latency): more filler = more retrieval distractors + (on the
+    # summary backend) more re-summarisation cycles between write and probe.
+    delay = dormancy if dormancy is not None else _DELAY[difficulty]
     hard = difficulty == "hard"
     trust = TrustLevel.UNTRUSTED if hard else TrustLevel.LOW
 

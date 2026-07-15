@@ -315,6 +315,88 @@ def cmd_ablate(args):
               f"{m['asr']:>6.3f} {m['persistence_survival']:>8.3f}")
 
 
+def _print_rows(title, rows):
+    print(f"\n{title}")
+    if not rows:
+        print("  (no rows)")
+        return
+    def cell(v):
+        return f"{v:.3f}" if isinstance(v, float) else str(v)
+    cols = list(rows[0].keys())
+    w = {c: max(len(c), max(len(cell(r[c])) for r in rows)) for c in cols}
+    print("  " + " | ".join(c.ljust(w[c]) for c in cols))
+    print("  " + "-+-".join("-" * w[c] for c in cols))
+    for r in rows:
+        print("  " + " | ".join(cell(r[c]).ljust(w[c]) for c in cols))
+
+
+def cmd_robustness(args):
+    """Reviewer-driven robustness experiments (§4.2, §4.3, §4.4, §4.7c):
+    leave-one-out defense ablation, non-oracle provenance sweep, safety/utility
+    Pareto over legitimate external-memory tasks, and the lifecycle funnel."""
+    import csv as _csv
+
+    from . import experiments as ex
+
+    tables = {
+        "leave_one_out": ("Leave-one-component-out of the 3-stage minimal defense (§4.7c)",
+                          ex.leave_one_out()),
+        "non_oracle_provenance": ("Non-oracle provenance: provenance-only vs 3-stage under noise (§4.2)",
+                                  ex.non_oracle_provenance()),
+        "attribution_noise": ("Causal-attribution error: minimal defense under inducing-state dropout (§5.3)",
+                              ex.attribution_noise()),
+        "safety_utility_pareto": ("Safety/utility Pareto: call- vs task-level over 56 legit tasks (§5.7)",
+                                  ex.safety_utility_pareto()),
+        "misapproval": ("Confirmation fatigue: ASR under confirm-external at misapproval p (§5.7)",
+                        ex.misapproval_sensitivity()),
+        "oracle_attack": ("Oracle-integrity attack: trusted-tool echo vs minimal defense (§5.9)",
+                          ex.oracle_attack_sweep()),
+        "funnel": ("Attack lifecycle funnel — unconditional stage reach rate (§4.3)",
+                   ex.funnel()),
+    }
+    for _, (title, rows) in tables.items():
+        _print_rows(title, rows)
+
+    if args.outdir:
+        os.makedirs(args.outdir, exist_ok=True)
+        for name, (_, rows) in tables.items():
+            if not rows:
+                continue
+            with open(os.path.join(args.outdir, f"{name}.csv"), "w", newline="") as fh:
+                w = _csv.DictWriter(fh, fieldnames=list(rows[0].keys()))
+                w.writeheader()
+                for r in rows:
+                    w.writerow({k: (f"{v:.4f}" if isinstance(v, float) else v)
+                                for k, v in r.items()})
+        print(f"\nwrote robustness CSVs to {args.outdir}/")
+
+
+def cmd_real_framework(args):
+    """§5.4 real-framework evaluation: run the 96 attacks through real LangChain
+    and LlamaIndex memory (vector/summary/kv) so backend and attack type are
+    decoupled. Needs the .venv-real extras (langchain, llama-index, chromadb)
+    and a reachable LM Studio server for embeddings + summarisation."""
+    import csv as _csv
+
+    from . import experiments as ex
+
+    tables = ex.real_framework()
+    for name, rows in tables.items():
+        _print_rows(f"§5.4 {name}", rows)
+    if args.outdir:
+        os.makedirs(args.outdir, exist_ok=True)
+        for name, rows in tables.items():
+            if not rows:
+                continue
+            with open(os.path.join(args.outdir, f"{name}.csv"), "w", newline="") as fh:
+                w = _csv.DictWriter(fh, fieldnames=list(rows[0].keys()))
+                w.writeheader()
+                for r in rows:
+                    w.writerow({k: (f"{v:.4f}" if isinstance(v, float) else v)
+                                for k, v in r.items()})
+        print(f"\nwrote real-framework CSVs to {args.outdir}/")
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="pdam", description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -382,6 +464,17 @@ def build_parser() -> argparse.ArgumentParser:
     ad.add_argument("--defenses", default="content_filter,least_privilege,minimal_defense")
     ad.add_argument("--max-attempts", dest="max_attempts", type=int, default=5)
     ad.set_defaults(func=cmd_adapt)
+
+    rb = sub.add_parser("robustness",
+                        help="reviewer-driven ablation / non-oracle / Pareto / funnel")
+    rb.add_argument("--outdir", default="results/robustness")
+    rb.set_defaults(func=cmd_robustness)
+
+    rf = sub.add_parser("real-framework",
+                        help="§5.4 real LangChain/LlamaIndex backend matrix "
+                             "(requires the .venv-real extras)")
+    rf.add_argument("--outdir", default="results/real_framework")
+    rf.set_defaults(func=cmd_real_framework)
     return p
 
 
